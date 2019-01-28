@@ -26,7 +26,7 @@ impl ML {
             let mut x: usize = 0;
             let mut new_row: Vec<f32> = Vec::with_capacity(self.input_size);
             while { x < self.input_size } {
-                new_row.push(self.rng.gen());
+                new_row.push(self.rng.gen_range(-2.0, 2.0));
                 x += 1;
             }
             new_nn.push(new_row);
@@ -63,7 +63,7 @@ impl ML {
                 unsafe {
                     self.nn[i][x] = std::intrinsics::fadd_fast(
                         self.nn[i][x],
-                        self.rng.gen_range(0.001, -0.001),
+                        self.rng.gen_range(-0.001, 0.001),
                     );
                 }
                 x += 1;
@@ -71,7 +71,7 @@ impl ML {
             i += 1;
         }
     }
-    pub fn evaluate(&self, training_data: Vec<Vec<Vec<f32>>>) {
+    pub fn evaluate(&self, training_data: &Vec<Vec<Vec<f32>>>) -> f32 {
         let mut total_error: f32 = 0.0;
         let mut row: usize = 0;
         while { row < training_data.len() } {
@@ -81,15 +81,17 @@ impl ML {
                 unsafe {
                     total_error = std::intrinsics::fadd_fast(
                         total_error,
-                        std::intrinsics::fdiv_fast(predicted[i], training_data[row][1][i]).abs(),
+                        std::intrinsics::fsub_fast(predicted[i], training_data[row][1][i])
+                            .abs()
                     );
-                        ;
                 }
                 i += 1;
             }
             row += 1;
         }
-        total_error;
+        unsafe {
+            std::intrinsics::fdiv_fast(total_error, (training_data.len() * self.output_size) as f32)
+        }
     }
     pub fn train(&mut self, training_data: Vec<Vec<Vec<f32>>>) {}
 }
@@ -97,4 +99,8 @@ fn main() {
     let mut the_machine: ML = ML::new(4, 2);
     println!("{:?}", the_machine.nn);
     println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
+    println!(
+        "{:?}",
+        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.015, 0.015]]])
+    );
 }
