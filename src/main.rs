@@ -109,7 +109,10 @@ impl ML {
                 i += 1;
             }
             if { new_score < previous_score } {
-                println!("Attempt {:?}, new score: {:?}", attempt, new_score);
+                if { attempt % 500 == 0 } {
+                    println!("Attempt {:?}, new score: {:?}", attempt, new_score);
+                }
+
                 self.nn[best_change[0] as usize][best_change[1] as usize] = unsafe {
                     std::intrinsics::fadd_fast(
                         self.nn[best_change[0] as usize][best_change[1] as usize],
@@ -130,19 +133,19 @@ fn main() {
     let mut the_machine: ML = ML::new(4, 2);
     println!("{:?}", the_machine.nn);
     println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
-    println!(
-        "{:?}",
-        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]])
-    );
+    let old_score: f32 =
+        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
+    println!("{:?}", old_score);
     the_machine.optimise_current(
         &vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]],
+        1000*1000,
         1000,
-        100000,
     );
     println!("{:?}", the_machine.nn);
     println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
     println!(
-        "{:?}",
-        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]])
+        "New score: {:?}, old score: {:?}",
+        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]),
+        old_score
     );
 }
