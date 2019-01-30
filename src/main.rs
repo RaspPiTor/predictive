@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 struct ML {
     input_size: usize,
     output_size: usize,
-    nn: Vec<Vec<f32>>,
+    nn: Vec<f32>,
     rng: rand::ThreadRng,
 }
 impl ML {
@@ -13,44 +13,35 @@ impl ML {
         let mut new: ML = ML {
             input_size: input_size,
             output_size: output_size,
-            nn: Vec::with_capacity(0),
+            nn: Vec::with_capacity(output_size * input_size),
             rng: thread_rng(),
         };
+        for _ in 0..(output_size * input_size) {
+            new.nn.push(0.0);
+        }
         new.randomise();
         new
     }
     fn randomise(&mut self) {
-        let mut new_nn: Vec<Vec<f32>> = Vec::with_capacity(self.output_size);
-        let mut i: usize = 0;
-        while { i < self.output_size } {
-            let mut x: usize = 0;
-            let mut new_row: Vec<f32> = Vec::with_capacity(self.input_size);
-            while { x < self.input_size } {
-                new_row.push(self.rng.gen_range(-2.0, 2.0));
-                x += 1;
+        for i in 0..self.output_size {
+            for x in 0..self.input_size {
+                self.nn[i * self.output_size + x] = self.rng.gen_range(-4.0, 4.0);
             }
-            new_nn.push(new_row);
-            i += 1;
         }
-        self.nn = new_nn;
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
         let mut output: Vec<f32> = Vec::with_capacity(self.output_size);
-        let mut i: usize = 0;
-        while { i < self.output_size } {
-            let mut x: usize = 0;
+        for i in 0..self.output_size {
             let mut total: f32 = 0.0;
-            while { x < self.input_size } {
+            for x in 0..self.input_size {
                 unsafe {
                     total = std::intrinsics::fadd_fast(
                         total,
-                        std::intrinsics::fmul_fast(self.nn[i][x], input[x]),
+                        std::intrinsics::fmul_fast(self.nn[i * self.output_size + x], input[x]),
                     );
                     ;
                 }
-                x += 1;
             }
-            i += 1;
             output.push(unsafe {
                 std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::PI)
             });
@@ -78,45 +69,40 @@ impl ML {
             std::intrinsics::fdiv_fast(total_error, (training_data.len() * self.output_size) as f32)
         }
     }
-    pub fn optimise_current(
-        &mut self,
-        training_data: &Vec<Vec<Vec<f32>>>,
-        rounds: u32,
-        variations: u32,
-    ) {
+    pub fn optimise_current(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
         let mut previous_score: f32 = self.evaluate(&training_data);
-        for attempt in 0..rounds {
-            let mut best_change: Vec<f32> = Vec::with_capacity(3);
+        for _ in 0..rounds {
+            let mut best_change_location: [usize; 2] = [0; 2];
+            let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
             let mut i: usize = 0;
             while { i < self.output_size } {
                 let mut x: usize = 0;
                 while { x < self.input_size } {
-                    for _ in 0..variations {
-                        let change: f32 = self.rng.gen_range(-0.0001, 0.0001);
-                        self.nn[i][x] =
-                            unsafe { std::intrinsics::fadd_fast(self.nn[i][x], change) };
+                    for change in [-0.0001, 0.0001].iter() {
+                        self.nn[i * self.output_size + x] = unsafe {
+                            std::intrinsics::fadd_fast(self.nn[i * self.output_size + x], *change)
+                        };
                         let current_score: f32 = self.evaluate(&training_data);
                         if { current_score < new_score } {
                             new_score = current_score;
-                            best_change = vec![i as f32, x as f32, change];
+                            best_change = *change;
+                            best_change_location = [i, x];
                         }
-                        self.nn[i][x] =
-                            unsafe { std::intrinsics::fsub_fast(self.nn[i][x], change) };
+                        self.nn[i * self.output_size + x] = unsafe {
+                            std::intrinsics::fsub_fast(self.nn[i * self.output_size + x], *change)
+                        };
                     }
                     x += 1;
                 }
                 i += 1;
             }
             if { new_score < previous_score } {
-                if { attempt % 500 == 0 } {
-                    println!("Attempt {:?}, new score: {:?}", attempt, new_score);
-                }
-
-                self.nn[best_change[0] as usize][best_change[1] as usize] = unsafe {
+                self.nn[best_change_location[0] * self.output_size + best_change_location[1]] = unsafe {
                     std::intrinsics::fadd_fast(
-                        self.nn[best_change[0] as usize][best_change[1] as usize],
-                        best_change[2],
+                        self.nn
+                            [best_change_location[0] * self.output_size + best_change_location[1]],
+                        best_change,
                     )
                 };
                 previous_score = new_score;
@@ -124,9 +110,27 @@ impl ML {
                 return;
             }
         }
+        println!("Ran out of rounds with max of: {:?}", rounds);
     }
     pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>) {
-        self.optimise_current(&training_data, 10, 10);
+        let mut best: Vec<f32> = self.nn.clone();
+        let mut best_score: f32 = self.evaluate(&training_data);
+        for round in 0..(1000 * 1000 * 1000) {
+            self.randomise();
+            self.optimise_current(&training_data, 1000 * 1000 * 1000);
+            let score: f32 = self.evaluate(&training_data);
+            if { true } {
+                println!(
+                    "Round {:?}, new score: {:?}, nn: {:?}",
+                    round, score, self.nn
+                );
+                if { score < best_score } {
+                    best_score = score;
+                    best = self.nn.clone();
+                }
+            }
+        }
+        self.nn = best;
     }
 }
 fn main() {
@@ -136,16 +140,12 @@ fn main() {
     let old_score: f32 =
         the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
     println!("{:?}", old_score);
-    the_machine.optimise_current(
-        &vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]],
-        1000*1000,
-        1000,
-    );
+    the_machine.train(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
     println!("{:?}", the_machine.nn);
     println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
     println!(
         "New score: {:?}, old score: {:?}",
-        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]),
+        the_machine.evaluate(&vec![vec![vec![1.0, 1.0, 1.0, 1.0], vec![0.0, 1.0]]]),
         old_score
     );
 }
