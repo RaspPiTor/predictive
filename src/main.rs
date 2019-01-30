@@ -104,11 +104,11 @@ impl ML {
         println!("Ran out of optimisation rounds");
         (rounds as u64) * (self.output_size * self.input_size) as u64 * 2
     }
-    pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>) {
+    pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
         let mut best: Vec<f32> = self.nn.clone();
         let mut best_score: f32 = self.evaluate(&training_data);
         let mut total_evaluations: u64 = 0;
-        for round in 0..(1000 * 1000 * 1000) {
+        for round in 0..rounds {
             self.randomise();
             total_evaluations += self.optimise_current(&training_data, 1000 * 1000 * 1000);
             let score: f32 = self.evaluate(&training_data);
@@ -121,8 +121,8 @@ impl ML {
                 );
             } else {
                 println!(
-                    "Round {:?}, total_evaluations: {:?}",
-                    round, total_evaluations
+                    "Round {:?}, total_evaluations: {:?}, current best: {:?}",
+                    round, total_evaluations, best_score
                 );
             }
         }
@@ -131,13 +131,11 @@ impl ML {
 }
 fn main() {
     let mut the_machine: ML = ML::new(4, 2);
-    println!("{:?}", the_machine.nn);
-    println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
-    let old_score: f32 =
-        the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
-    println!("{:?}", old_score);
-    the_machine.train(&vec![
-        vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]],
-        vec![vec![4.0, 3.0, 2.0, 1.0], vec![1.0, 0.0]],
-    ]);
+    the_machine.train(
+        &vec![
+            vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]],
+            vec![vec![4.0, 3.0, 2.0, 1.0], vec![1.0, 0.0]],
+        ],
+        1000,
+    );
 }
