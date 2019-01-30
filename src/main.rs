@@ -50,20 +50,16 @@ impl ML {
     }
     pub fn evaluate(&self, training_data: &Vec<Vec<Vec<f32>>>) -> f32 {
         let mut total_error: f32 = 0.0;
-        let mut row: usize = 0;
-        while { row < training_data.len() } {
+        for row in 0..training_data.len() {
             let predicted: Vec<f32> = self.predict(&training_data[row][0]);
-            let mut i: usize = 0;
-            while { i < self.output_size } {
+            for i in 0..self.output_size {
                 unsafe {
                     total_error = std::intrinsics::fadd_fast(
                         total_error,
                         std::intrinsics::fsub_fast(predicted[i], training_data[row][1][i]).abs(),
                     );
                 }
-                i += 1;
             }
-            row += 1;
         }
         unsafe {
             std::intrinsics::fdiv_fast(total_error, (training_data.len() * self.output_size) as f32)
@@ -115,15 +111,15 @@ impl ML {
             self.randomise();
             self.optimise_current(&training_data, 1000 * 1000 * 1000);
             let score: f32 = self.evaluate(&training_data);
-            if { true } {
+            if { score < best_score } {
+                best_score = score;
+                best = self.nn.clone();
                 println!(
                     "Round {:?}, new score: {:?}, nn: {:?}",
                     round, score, self.nn
                 );
-                if { score < best_score } {
-                    best_score = score;
-                    best = self.nn.clone();
-                }
+            } else {
+                println!("Round {:?}", round);
             }
         }
         self.nn = best;
