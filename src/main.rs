@@ -65,9 +65,9 @@ impl ML {
             std::intrinsics::fdiv_fast(total_error, (training_data.len() * self.output_size) as f32)
         }
     }
-    pub fn optimise_current(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
+    pub fn optimise_current(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) -> u64 {
         let mut previous_score: f32 = self.evaluate(&training_data);
-        for _ in 0..rounds {
+        for round in 0..rounds {
             let mut best_change_location: [usize; 2] = [0; 2];
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
@@ -98,27 +98,32 @@ impl ML {
                 };
                 previous_score = new_score;
             } else {
-                return;
+                return (round as u64) * (self.output_size * self.input_size) as u64 * 2;
             }
         }
-        println!("Ran out of rounds with max of: {:?}", rounds);
+        println!("Ran out of optimisation rounds");
+        (rounds as u64) * (self.output_size * self.input_size) as u64 * 2
     }
     pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>) {
         let mut best: Vec<f32> = self.nn.clone();
         let mut best_score: f32 = self.evaluate(&training_data);
+        let mut total_evaluations: u64 = 0;
         for round in 0..(1000 * 1000 * 1000) {
             self.randomise();
-            self.optimise_current(&training_data, 1000 * 1000 * 1000);
+            total_evaluations += self.optimise_current(&training_data, 1000 * 1000 * 1000);
             let score: f32 = self.evaluate(&training_data);
             if { score < best_score } {
                 best_score = score;
                 best = self.nn.clone();
                 println!(
-                    "Round {:?}, new score: {:?}, nn: {:?}",
-                    round, score, self.nn
+                    "Round {:?}, new score: {:?}, total_evaluations: {:?} nn: {:?}",
+                    round, score, total_evaluations, self.nn
                 );
             } else {
-                println!("Round {:?}", round);
+                println!(
+                    "Round {:?}, total_evaluations: {:?}",
+                    round, total_evaluations
+                );
             }
         }
         self.nn = best;
@@ -131,5 +136,8 @@ fn main() {
     let old_score: f32 =
         the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
     println!("{:?}", old_score);
-    the_machine.train(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
+    the_machine.train(&vec![
+        vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]],
+        vec![vec![4.0, 3.0, 2.0, 1.0], vec![1.0, 0.0]],
+    ]);
 }
