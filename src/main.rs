@@ -43,7 +43,7 @@ impl ML {
                 }
             }
             output.push(unsafe {
-                std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::PI)
+                std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
             });
         }
         return output;
@@ -132,11 +132,4 @@ fn main() {
         the_machine.evaluate(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
     println!("{:?}", old_score);
     the_machine.train(&vec![vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]]]);
-    println!("{:?}", the_machine.nn);
-    println!("{:?}", the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]));
-    println!(
-        "New score: {:?}, old score: {:?}",
-        the_machine.evaluate(&vec![vec![vec![1.0, 1.0, 1.0, 1.0], vec![0.0, 1.0]]]),
-        old_score
-    );
 }
