@@ -74,6 +74,7 @@ impl ML {
             for i in 0..self.output_size {
                 for x in 0..self.input_size {
                     for change in [-0.0001, 0.0001].iter() {
+                        let old: f32 = self.nn[i * self.output_size + x];
                         self.nn[i * self.output_size + x] = unsafe {
                             std::intrinsics::fadd_fast(self.nn[i * self.output_size + x], *change)
                         };
@@ -83,9 +84,7 @@ impl ML {
                             best_change = *change;
                             best_change_location = [i, x];
                         }
-                        self.nn[i * self.output_size + x] = unsafe {
-                            std::intrinsics::fsub_fast(self.nn[i * self.output_size + x], *change)
-                        };
+                        self.nn[i * self.output_size + x] = old;
                     }
                 }
             }
