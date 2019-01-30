@@ -75,10 +75,8 @@ impl ML {
             let mut best_change_location: [usize; 2] = [0; 2];
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
-            let mut i: usize = 0;
-            while { i < self.output_size } {
-                let mut x: usize = 0;
-                while { x < self.input_size } {
+            for i in 0..self.output_size {
+                for x in 0..self.input_size {
                     for change in [-0.0001, 0.0001].iter() {
                         self.nn[i * self.output_size + x] = unsafe {
                             std::intrinsics::fadd_fast(self.nn[i * self.output_size + x], *change)
@@ -93,9 +91,7 @@ impl ML {
                             std::intrinsics::fsub_fast(self.nn[i * self.output_size + x], *change)
                         };
                     }
-                    x += 1;
                 }
-                i += 1;
             }
             if { new_score < previous_score } {
                 self.nn[best_change_location[0] * self.output_size + best_change_location[1]] = unsafe {
