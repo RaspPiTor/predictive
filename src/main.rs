@@ -104,7 +104,12 @@ impl ML {
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
             for location in 0..self.nn.len() {
-                for change in [-0.00001, -0.0001, -0.001, -0.01, -0.1, 0.1, 0.01, 0.001, 0.0001, 0.00001].iter() {
+                for change in [
+                    -0.000001, -0.00001, -0.0001, -0.001, -0.01, -0.1, -1.0, -10.0, 10.0, 1.0, 0.1,
+                    0.01, 0.001, 0.0001, 0.00001, 0.000001,
+                ]
+                .iter()
+                {
                     let old: f32 = self.nn[location];
                     self.nn[location] =
                         unsafe { std::intrinsics::fadd_fast(self.nn[location], *change) };
@@ -123,11 +128,11 @@ impl ML {
                 };
                 previous_score = new_score;
             } else {
-                return (round as u64) * self.nn.len() as u64 * 10;
+                return (round as u64) * self.nn.len() as u64 * 16;
             }
         }
         println!("Ran out of optimisation rounds");
-        (rounds as u64) * self.nn.len() as u64 * 10
+        (rounds as u64) * self.nn.len() as u64 * 16
     }
     pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
         let mut best: Vec<f32> = self.nn.clone();
