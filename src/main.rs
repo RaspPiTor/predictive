@@ -13,20 +13,15 @@ impl ML {
         let mut new: ML = ML {
             input_size: input_size,
             output_size: output_size,
-            nn: Vec::with_capacity(output_size * input_size),
+            nn: vec![0.0; output_size * input_size],
             rng: thread_rng(),
         };
-        for _ in 0..(output_size * input_size) {
-            new.nn.push(0.0);
-        }
         new.randomise();
         new
     }
     fn randomise(&mut self) {
-        for i in 0..self.output_size {
-            for x in 0..self.input_size {
-                self.nn[i * self.output_size + x] = self.rng.gen_range(-4.0, 4.0);
-            }
+        for i in 0..(self.output_size * self.input_size) {
+            self.nn[i] = self.rng.gen_range(-4.0, 4.0);
         }
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
