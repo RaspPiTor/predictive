@@ -63,33 +63,26 @@ impl ML {
     pub fn optimise_current(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) -> u64 {
         let mut previous_score: f32 = self.evaluate(&training_data);
         for round in 0..rounds {
-            let mut best_change_location: [usize; 2] = [0; 2];
+            let mut best_change_location: usize = 0;
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
-            for i in 0..self.output_size {
-                for x in 0..self.input_size {
-                    for change in [-0.0001, 0.0001].iter() {
-                        let old: f32 = self.nn[i * self.output_size + x];
-                        self.nn[i * self.output_size + x] = unsafe {
-                            std::intrinsics::fadd_fast(self.nn[i * self.output_size + x], *change)
-                        };
-                        let current_score: f32 = self.evaluate(&training_data);
-                        if { current_score < new_score } {
-                            new_score = current_score;
-                            best_change = *change;
-                            best_change_location = [i, x];
-                        }
-                        self.nn[i * self.output_size + x] = old;
+            for location in 0..(self.output_size * self.input_size) {
+                for change in [-0.0001, 0.0001].iter() {
+                    let old: f32 = self.nn[location];
+                    self.nn[location] =
+                        unsafe { std::intrinsics::fadd_fast(self.nn[location], *change) };
+                    let current_score: f32 = self.evaluate(&training_data);
+                    if { current_score < new_score } {
+                        new_score = current_score;
+                        best_change = *change;
+                        best_change_location = location;
                     }
+                    self.nn[location] = old;
                 }
             }
             if { new_score < previous_score } {
-                self.nn[best_change_location[0] * self.output_size + best_change_location[1]] = unsafe {
-                    std::intrinsics::fadd_fast(
-                        self.nn
-                            [best_change_location[0] * self.output_size + best_change_location[1]],
-                        best_change,
-                    )
+                self.nn[best_change_location] = unsafe {
+                    std::intrinsics::fadd_fast(self.nn[best_change_location], best_change)
                 };
                 previous_score = new_score;
             } else {
