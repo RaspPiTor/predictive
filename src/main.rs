@@ -5,43 +5,80 @@ use rand::{thread_rng, Rng};
 struct ML {
     input_size: usize,
     output_size: usize,
+    hidden_layers: usize,
+    nodes_in_layer: usize,
     nn: Vec<f32>,
+    sizes: Vec<[usize; 2]>,
     rng: rand::ThreadRng,
 }
 impl ML {
-    pub fn new(input_size: usize, output_size: usize) -> ML {
+    pub fn new(
+        input_size: usize,
+        output_size: usize,
+        hidden_layers: usize,
+        nodes_in_layer: usize,
+    ) -> ML {
+        assert!(hidden_layers >= 1);
+        assert!(nodes_in_layer >= 1);
+        let mut sizes: Vec<[usize; 2]> = vec![[input_size, nodes_in_layer]];
+        for _ in 0..hidden_layers {
+            sizes.push([nodes_in_layer, nodes_in_layer]);
+        }
+        sizes.push([nodes_in_layer, output_size]);
         let mut new: ML = ML {
             input_size: input_size,
             output_size: output_size,
-            nn: vec![0.0; output_size * input_size],
+            nn: vec![
+                0.0;
+                input_size * nodes_in_layer
+                    + hidden_layers * nodes_in_layer * nodes_in_layer
+                    + nodes_in_layer * output_size
+            ],
+            hidden_layers: hidden_layers,
+            nodes_in_layer: nodes_in_layer,
+            sizes: sizes,
             rng: thread_rng(),
         };
         new.randomise();
         new
     }
     fn randomise(&mut self) {
-        for i in 0..(self.output_size * self.input_size) {
+        for i in 0..(self.input_size * self.nodes_in_layer
+            + self.hidden_layers * self.nodes_in_layer * self.nodes_in_layer
+            + self.nodes_in_layer * self.output_size)
+        {
             self.nn[i] = self.rng.gen_range(-4.0, 4.0);
         }
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
-        let mut output: Vec<f32> = Vec::with_capacity(self.output_size);
-        for i in 0..self.output_size {
-            let mut total: f32 = 0.0;
-            for x in 0..self.input_size {
-                unsafe {
-                    total = std::intrinsics::fadd_fast(
-                        total,
-                        std::intrinsics::fmul_fast(self.nn[i * self.output_size + x], input[x]),
-                    );
-                    ;
+        let mut previous: Vec<f32> = input.clone();
+
+        let mut hidden: Vec<f32> = Vec::with_capacity(self.nodes_in_layer);
+        let mut pos: usize = 0;
+        for sizes in &self.sizes {
+            for i in 0..sizes[1] {
+                let mut total: f32 = 0.0;
+                for x in 0..sizes[0] {
+                    unsafe {
+                        total = std::intrinsics::fadd_fast(
+                            total,
+                            std::intrinsics::fmul_fast(
+                                self.nn[pos + i * sizes[1] + x],
+                                previous[x],
+                            ),
+                        );
+                        ;
+                    }
                 }
+                hidden.push(unsafe {
+                    std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
+                });
             }
-            output.push(unsafe {
-                std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
-            });
+            previous = hidden.clone();
+            hidden.clear();
+            pos += sizes[0] * sizes[1];
         }
-        return output;
+        return previous;
     }
     pub fn evaluate(&self, training_data: &Vec<Vec<Vec<f32>>>) -> f32 {
         let mut total_error: f32 = 0.0;
@@ -66,8 +103,8 @@ impl ML {
             let mut best_change_location: usize = 0;
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score + 1.0;
-            for location in 0..(self.output_size * self.input_size) {
-                for change in [-0.0001, 0.0001].iter() {
+            for location in 0..self.nn.len() {
+                for change in [-0.00001, -0.0001, -0.001, -0.01, -0.1, 0.1, 0.01, 0.001, 0.0001, 0.00001].iter() {
                     let old: f32 = self.nn[location];
                     self.nn[location] =
                         unsafe { std::intrinsics::fadd_fast(self.nn[location], *change) };
@@ -86,11 +123,11 @@ impl ML {
                 };
                 previous_score = new_score;
             } else {
-                return (round as u64) * (self.output_size * self.input_size) as u64 * 2;
+                return (round as u64) * self.nn.len() as u64 * 10;
             }
         }
         println!("Ran out of optimisation rounds");
-        (rounds as u64) * (self.output_size * self.input_size) as u64 * 2
+        (rounds as u64) * self.nn.len() as u64 * 10
     }
     pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
         let mut best: Vec<f32> = self.nn.clone();
@@ -118,7 +155,7 @@ impl ML {
     }
 }
 fn main() {
-    let mut the_machine: ML = ML::new(4, 2);
+    let mut the_machine: ML = ML::new(4, 2, 1, 2);
     the_machine.train(
         &vec![
             vec![vec![1.0, 2.0, 3.0, 4.0], vec![0.0, 1.0]],
