@@ -71,7 +71,7 @@ impl ML {
                     std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
                 });
             }
-            previous = hidden.clone();
+            std::mem::swap(&mut previous, &mut hidden);
             hidden.clear();
             pos += sizes[0] * sizes[1];
         }
