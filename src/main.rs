@@ -68,7 +68,9 @@ impl ML {
                 }
             }
             output[i] = unsafe {
-                std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
+                std::intrinsics::fdiv_fast(
+                    total,
+                    total.abs() + 1.0)
             };
         }
     }
@@ -166,7 +168,7 @@ impl ML {
                         self.nn[location] += change;
                         let current_score: f32 = self.evaluate(&training_data);
                         self.nn[location] = old;
-                        if { current_score < last_current_score } {
+                        if { current_score <= last_current_score } {
                             last_current_score = current_score;
                             if { current_score < new_score } {
                                 new_score = current_score;

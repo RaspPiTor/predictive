@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 rand = "0.4"
-fast-math = "0.1"
 
 [profile.release]
 opt-level = 3
