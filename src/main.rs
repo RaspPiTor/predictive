@@ -102,18 +102,60 @@ impl ML {
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score;
             for location in 0..self.nn.len() {
-                for base in [-1.0 / 2048.0, 1.0 / 2048.0].iter() {
-                    let mut change = *base;
-                    loop {
+                let options = [
+                    [
+                        1.0 / 2048.0,
+                        1.0 / 1024.0,
+                        1.0 / 512.0,
+                        1.0 / 256.0,
+                        1.0 / 128.0,
+                        1.0 / 64.0,
+                        1.0 / 32.0,
+                        1.0 / 16.0,
+                        1.0 / 8.0,
+                        1.0 / 4.0,
+                        1.0 / 2.0,
+                        1.0,
+                        2.0,
+                        4.0,
+                        8.0,
+                        16.0,
+                        32.0,
+                    ],
+                    [
+                        -1.0 / 2048.0,
+                        -1.0 / 1024.0,
+                        -1.0 / 512.0,
+                        -1.0 / 256.0,
+                        -1.0 / 128.0,
+                        -1.0 / 64.0,
+                        -1.0 / 32.0,
+                        -1.0 / 16.0,
+                        -1.0 / 8.0,
+                        -1.0 / 4.0,
+                        -1.0 / 2.0,
+                        -1.0,
+                        -2.0,
+                        -4.0,
+                        -8.0,
+                        -16.0,
+                        -32.0,
+                    ],
+                ];
+                for options_list in options.iter() {
+                    let mut last_current_score: f32 = previous_score;
+                    for change in options_list.iter() {
                         let old: f32 = self.nn[location];
                         self.nn[location] += change;
                         let current_score: f32 = self.evaluate(&training_data);
                         self.nn[location] = old;
-                        if { current_score < new_score } {
-                            new_score = current_score;
-                            best_change = change;
-                            best_change_location = location;
-                            change *= 2.0;
+                        if { current_score < last_current_score } {
+                            last_current_score = current_score;
+                            if { current_score < new_score } {
+                                new_score = current_score;
+                                best_change = *change;
+                                best_change_location = location;
+                            }
                         } else {
                             break;
                         }
