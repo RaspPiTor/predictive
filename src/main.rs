@@ -108,7 +108,7 @@ impl ML {
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score;
             for location in 0..self.nn.len() {
-                for base in [-0.00001, 0.00001].iter() {
+                for base in [-1.0 / 2048.0, 1.0 / 2048.0].iter() {
                     let mut change = *base;
                     loop {
                         let old: f32 = self.nn[location];
