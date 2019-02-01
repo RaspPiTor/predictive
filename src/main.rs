@@ -3,9 +3,7 @@ extern crate rand;
 use rand::{thread_rng, Rng};
 
 struct ML {
-    input_size: usize,
     output_size: usize,
-    hidden_layers: usize,
     nodes_in_layer: usize,
     nn: Vec<f32>,
     sizes: Vec<[usize; 2]>,
@@ -28,7 +26,6 @@ impl ML {
         }
         sizes.push([nodes_in_layer, output_size]);
         let mut new: ML = ML {
-            input_size: input_size,
             output_size: output_size,
             nn: vec![
                 0.0;
@@ -36,7 +33,6 @@ impl ML {
                     + hidden_layers * nodes_in_layer * nodes_in_layer
                     + nodes_in_layer * output_size
             ],
-            hidden_layers: hidden_layers,
             nodes_in_layer: nodes_in_layer,
             sizes: sizes,
             rng: thread_rng(),
