@@ -3,6 +3,7 @@ extern crate rand;
 use rand::{thread_rng, Rng};
 
 struct ML {
+    input_size: usize,
     output_size: usize,
     nn: Vec<f32>,
     sizes: Vec<[usize; 2]>,
@@ -29,6 +30,7 @@ impl ML {
         sizes.push([nodes_in_layer, output_size]);
         let largest_layer_capacity: usize = if {nodes_in_layer > output_size} {nodes_in_layer} else {output_size};
         let mut new: ML = ML {
+            input_size: input_size,
             output_size: output_size,
             nn: vec![
                 0.0;
@@ -49,33 +51,40 @@ impl ML {
             self.nn[i] = self.rng.gen_range(-1.0, 1.0);
         }
     }
-    pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
-        let mut previous: Vec<f32> = input.clone();
-        let mut hidden: Vec<f32> = Vec::with_capacity(self.largest_layer_capacity);
-        let mut pos: usize = 0;
-        for sizes in &self.sizes {
-            for i in 0..sizes[1] {
-                let mut total: f32 = 0.0;
-                for x in 0..sizes[0] {
-                    unsafe {
-                        total = std::intrinsics::fadd_fast(
-                            total,
-                            std::intrinsics::fmul_fast(
-                                self.nn[pos + i * sizes[0] + x],
-                                previous[x],
-                            ),
-                        );
-                        ;
-                    }
+    fn apply_layer(&self, input: &Vec<f32>, output: &mut Vec<f32>, size1: usize, size2: usize, offset: usize) {
+        assert!(input.len() >= size1);
+        assert!(output.len() >= size2);
+        for i in 0..size2 {
+            let mut total: f32 = 0.0;
+            for x in 0..size1 {
+                unsafe {
+                    total = std::intrinsics::fadd_fast(
+                        total,
+                        std::intrinsics::fmul_fast(
+                            self.nn[offset + i * size1 + x],
+                            input[x],
+                        ),
+                    );
                 }
-                hidden.push(unsafe {
-                    std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
-                });
             }
-            std::mem::swap(&mut previous, &mut hidden);
-            hidden.clear();
-            pos += sizes[0] * sizes[1];
+            output[i] = unsafe {
+                std::intrinsics::fdiv_fast(fast_math::atan(total), std::f32::consts::FRAC_PI_2)
+            };
         }
+    }
+    pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
+        assert!(input.len() == self.input_size);
+        let mut previous: Vec<f32> = vec![0.0; self.largest_layer_capacity];
+        let mut next_layer: Vec<f32> = vec![0.0; self.largest_layer_capacity];
+        self.apply_layer(&input, &mut previous, self.sizes[0][0], self.sizes[0][1], 0);
+        let mut offset: usize = self.sizes[0][0] * self.sizes[0][1];
+        for i in 1..(self.sizes.len()) {
+            let sizes = self.sizes[i];
+            self.apply_layer(&previous, &mut next_layer, sizes[0], sizes[1], offset);
+            std::mem::swap(&mut previous, &mut next_layer);
+            offset += sizes[0] * sizes[1];
+        }
+        previous.truncate(self.output_size);
         return previous;
     }
     pub fn evaluate(&mut self, training_data: &Vec<Vec<Vec<f32>>>) -> f32 {
