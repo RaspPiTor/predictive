@@ -46,10 +46,7 @@ impl ML {
         new
     }
     fn randomise(&mut self) {
-        for i in 0..(self.input_size * self.nodes_in_layer
-            + self.hidden_layers * self.nodes_in_layer * self.nodes_in_layer
-            + self.nodes_in_layer * self.output_size)
-        {
+        for i in 0..self.nn.len() {
             self.nn[i] = self.rng.gen_range(-4.0, 4.0);
         }
     }
