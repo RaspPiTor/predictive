@@ -21,7 +21,7 @@ impl ML {
     ) -> ML {
         assert!(hidden_layers >= 1);
         assert!(nodes_in_layer >= 1);
-        hidden_layers -= 1;//to account for double counting
+        hidden_layers -= 1; //to account for double counting
         let mut sizes: Vec<[usize; 2]> = vec![[input_size, nodes_in_layer]];
         for _ in 0..hidden_layers {
             sizes.push([nodes_in_layer, nodes_in_layer]);
@@ -55,7 +55,6 @@ impl ML {
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
         let mut previous: Vec<f32> = input.clone();
-
         let mut hidden: Vec<f32> = Vec::with_capacity(self.nodes_in_layer);
         let mut pos: usize = 0;
         for sizes in &self.sizes {
