@@ -60,7 +60,7 @@ impl ML {
                         total = std::intrinsics::fadd_fast(
                             total,
                             std::intrinsics::fmul_fast(
-                                self.nn[pos + i * sizes[1] + x],
+                                self.nn[pos + i * sizes[0] + x],
                                 previous[x],
                             ),
                         );
