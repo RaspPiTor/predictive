@@ -106,10 +106,8 @@ impl ML {
                     let mut change = *base;
                     loop {
                         let old: f32 = self.nn[location];
-                        self.nn[location] =
-                            unsafe { std::intrinsics::fadd_fast(self.nn[location], change) };
+                        self.nn[location] += change;
                         let current_score: f32 = self.evaluate(&training_data);
-
                         self.nn[location] = old;
                         if { current_score < new_score } {
                             new_score = current_score;
@@ -123,9 +121,7 @@ impl ML {
                 }
             }
             if { new_score < previous_score } {
-                self.nn[best_change_location] = unsafe {
-                    std::intrinsics::fadd_fast(self.nn[best_change_location], best_change)
-                };
+                self.nn[best_change_location] += best_change;
                 previous_score = new_score;
             } else {
                 return;
