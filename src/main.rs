@@ -45,7 +45,7 @@ impl ML {
     }
     fn randomise(&mut self) {
         for i in 0..self.nn.len() {
-            self.nn[i] = self.rng.gen_range(-4.0, 4.0);
+            self.nn[i] = self.rng.gen_range(-1.0, 1.0);
         }
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
