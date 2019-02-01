@@ -4,11 +4,11 @@ use rand::{thread_rng, Rng};
 
 struct ML {
     output_size: usize,
-    nodes_in_layer: usize,
     nn: Vec<f32>,
     sizes: Vec<[usize; 2]>,
     rng: rand::ThreadRng,
     total_evaluations: u64,
+    largest_layer_capacity: usize,
 }
 impl ML {
     pub fn new(
@@ -27,6 +27,7 @@ impl ML {
             sizes.push([nodes_in_layer, nodes_in_layer]);
         }
         sizes.push([nodes_in_layer, output_size]);
+        let largest_layer_capacity: usize = if {nodes_in_layer > output_size} {nodes_in_layer} else {output_size};
         let mut new: ML = ML {
             output_size: output_size,
             nn: vec![
@@ -35,10 +36,10 @@ impl ML {
                     + hidden_layers * nodes_in_layer * nodes_in_layer
                     + nodes_in_layer * output_size
             ],
-            nodes_in_layer: nodes_in_layer,
             sizes: sizes,
             rng: thread_rng(),
             total_evaluations: 0,
+            largest_layer_capacity: largest_layer_capacity,
         };
         new.randomise();
         new
@@ -50,7 +51,7 @@ impl ML {
     }
     pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
         let mut previous: Vec<f32> = input.clone();
-        let mut hidden: Vec<f32> = Vec::with_capacity(self.nodes_in_layer);
+        let mut hidden: Vec<f32> = Vec::with_capacity(self.largest_layer_capacity);
         let mut pos: usize = 0;
         for sizes in &self.sizes {
             for i in 0..sizes[1] {
