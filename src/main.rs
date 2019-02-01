@@ -17,6 +17,8 @@ impl ML {
         mut hidden_layers: usize,
         nodes_in_layer: usize,
     ) -> ML {
+        assert!(input_size >= 1);
+        assert!(output_size >= 1);
         assert!(hidden_layers >= 1);
         assert!(nodes_in_layer >= 1);
         hidden_layers -= 1; //to account for double counting
