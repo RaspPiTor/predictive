@@ -102,7 +102,7 @@ impl ML {
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score;
             for location in 0..self.nn.len() {
-                let options = [
+                for options in [
                     [
                         1.0 / 2048.0,
                         1.0 / 1024.0,
@@ -141,10 +141,11 @@ impl ML {
                         -16.0,
                         -32.0,
                     ],
-                ];
-                for options_list in options.iter() {
+                ]
+                .iter()
+                {
                     let mut last_current_score: f32 = previous_score;
-                    for change in options_list.iter() {
+                    for change in options.iter() {
                         let old: f32 = self.nn[location];
                         self.nn[location] += change;
                         let current_score: f32 = self.evaluate(&training_data);
