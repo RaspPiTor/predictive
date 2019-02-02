@@ -28,7 +28,12 @@ impl ML {
             sizes.push([nodes_in_layer, nodes_in_layer]);
         }
         sizes.push([nodes_in_layer, output_size]);
-        let largest_layer_capacity: usize = if {nodes_in_layer > output_size} {nodes_in_layer} else {output_size};
+        let largest_layer_capacity: usize = if { nodes_in_layer > output_size } {
+            nodes_in_layer
+        } else {
+            output_size
+        };
+
         let mut new: ML = ML {
             input_size: input_size,
             output_size: output_size,
@@ -51,7 +56,14 @@ impl ML {
             self.nn[i] = self.rng.gen_range(-1.0, 1.0);
         }
     }
-    fn apply_layer(&self, input: &Vec<f32>, output: &mut Vec<f32>, size1: usize, size2: usize, offset: usize) {
+    fn apply_layer(
+        &self,
+        input: &Vec<f32>,
+        output: &mut Vec<f32>,
+        size1: usize,
+        size2: usize,
+        offset: usize,
+    ) {
         assert!(input.len() >= size1);
         assert!(output.len() >= size2);
         for i in 0..size2 {
