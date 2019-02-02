@@ -244,6 +244,7 @@ impl ML {
             self.randomise();
             self.optimise_current(&training_data);
             let score: f32 = self.evaluate(&training_data, &mut temp_data);
+            total += score;
             if { score < best_score } {
                 best_score = score;
                 best = self.nn.clone();
@@ -253,8 +254,11 @@ impl ML {
                 );
             } else {
                 println!(
-                    "Round {:?}, total_evaluations: {:?}, current best: {:?}",
-                    round, self.total_evaluations, best_score
+                    "Round {:?}, total_evaluations: {:?}, current best: {:?} avg: {:?}",
+                    round,
+                    self.total_evaluations,
+                    best_score,
+                    total / (round as f32 + 1.0)
                 );
             }
         }
