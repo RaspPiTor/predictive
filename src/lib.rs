@@ -86,7 +86,7 @@ impl ML {
             let mut total: f32 = 0.0;
             let current_offset: usize = offset + i * size1;
             let mut x: usize = 0;
-            for input_item in input[..size1].iter() {
+            for input_item in input.iter() {
                 unsafe {
                     total = std::intrinsics::fadd_fast(
                         total,
