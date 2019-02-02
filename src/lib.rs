@@ -109,7 +109,7 @@ impl ML {
         let mut sizes_iter = self.sizes.iter();
         let sizes = sizes_iter.next().expect("");
         self.apply_layer(&input, &mut temp_data.previous, sizes[0], sizes[1], 0);
-        let mut offset: usize = self.sizes[0][0] * self.sizes[0][1];
+        let mut offset: usize = sizes[0] * sizes[1];
         for sizes in sizes_iter {
             self.apply_layer(
                 &temp_data.previous,
