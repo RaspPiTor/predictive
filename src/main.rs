@@ -275,7 +275,7 @@ fn main() {
     );
     println!(
         "[1.0, 2.0, 3.0, 4.0]:{:?}, [4.0, 3.0, 2.0, 1.0]:{:?}",
-        the_machine.predict(&vec![1.0, 2.0, 3.0, 4.0]),
-        the_machine.predict(&vec![4.0, 3.0, 2.0, 1.0])
+        the_machine.predict_public(&vec![1.0, 2.0, 3.0, 4.0]),
+        the_machine.predict_public(&vec![4.0, 3.0, 2.0, 1.0])
     )
 }
