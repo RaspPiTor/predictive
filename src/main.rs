@@ -2,6 +2,21 @@
 extern crate rand;
 use rand::{thread_rng, Rng};
 
+struct PredictionTempData {
+    previous: Vec<f32>,
+    next_layer: Vec<f32>,
+}
+impl PredictionTempData {
+    pub fn new(largest_layer_capacity: usize) -> PredictionTempData {
+        let previous: Vec<f32> = vec![0.0; largest_layer_capacity];
+        let next_layer: Vec<f32> = vec![0.0; largest_layer_capacity];
+        PredictionTempData {
+            previous: previous,
+            next_layer: next_layer,
+        }
+    }
+}
+
 struct ML {
     input_size: usize,
     output_size: usize,
@@ -66,53 +81,69 @@ impl ML {
     ) {
         assert!(input.len() >= size1);
         assert!(output.len() >= size2);
+        assert!(self.nn.len() >= offset + (size2 - 1) * size1 + (size1 - 1));
         for i in 0..size2 {
             let mut total: f32 = 0.0;
+            let current_offset: usize = offset + i * size1;
             for x in 0..size1 {
                 unsafe {
                     total = std::intrinsics::fadd_fast(
                         total,
                         std::intrinsics::fmul_fast(
-                            self.nn[offset + i * size1 + x],
-                            input[x],
+                            *self.nn.get_unchecked(current_offset + x),
+                            *input.get_unchecked(x),
                         ),
                     );
                 }
             }
-            output[i] = unsafe {
-                std::intrinsics::fdiv_fast(
-                    total,
-                    total.abs() + 1.0)
+            unsafe {
+                *output.get_unchecked_mut(i) =
+                    std::intrinsics::fdiv_fast(total, std::intrinsics::fadd_fast(total.abs(), 1.0))
             };
         }
     }
-    pub fn predict(&self, input: &Vec<f32>) -> Vec<f32> {
+    fn predict(&self, input: &Vec<f32>, temp_data: &mut PredictionTempData) {
         assert!(input.len() == self.input_size);
-        let mut previous: Vec<f32> = vec![0.0; self.largest_layer_capacity];
-        let mut next_layer: Vec<f32> = vec![0.0; self.largest_layer_capacity];
-        self.apply_layer(&input, &mut previous, self.sizes[0][0], self.sizes[0][1], 0);
+        let mut sizes_iter = self.sizes.iter();
+        let sizes = sizes_iter.next().expect("");
+        self.apply_layer(&input, &mut temp_data.previous, sizes[0], sizes[1], 0);
         let mut offset: usize = self.sizes[0][0] * self.sizes[0][1];
-        for i in 1..(self.sizes.len()) {
-            let sizes = self.sizes[i];
-            self.apply_layer(&previous, &mut next_layer, sizes[0], sizes[1], offset);
-            std::mem::swap(&mut previous, &mut next_layer);
+        for sizes in sizes_iter {
+            self.apply_layer(
+                &temp_data.previous,
+                &mut temp_data.next_layer,
+                sizes[0],
+                sizes[1],
+                offset,
+            );
+            std::mem::swap(&mut temp_data.previous, &mut temp_data.next_layer);
             offset += sizes[0] * sizes[1];
         }
-        previous.truncate(self.output_size);
-        return previous;
     }
-    pub fn evaluate(&mut self, training_data: &Vec<Vec<Vec<f32>>>) -> f32 {
+    pub fn predict_public(&self, input: &Vec<f32>) -> Vec<f32>{
+        let mut temp_data: PredictionTempData =
+            PredictionTempData::new(self.largest_layer_capacity);
+        self.predict(&input, &mut temp_data);
+        temp_data.previous[..self.output_size].to_vec()
+    }
+    pub fn evaluate(
+        &mut self,
+        training_data: &Vec<Vec<Vec<f32>>>,
+        mut temp_data: &mut PredictionTempData,
+    ) -> f32 {
         self.total_evaluations += 1;
         let mut total_error: f32 = 0.0;
         for row in 0..training_data.len() {
-            let predicted: Vec<f32> = self.predict(&training_data[row][0]);
-            for i in 0..self.output_size {
+            let mut i: usize = 0;
+            self.predict(&training_data[row][0], &mut temp_data);
+            for item in temp_data.previous[..self.output_size].iter() {
                 unsafe {
                     total_error = std::intrinsics::fadd_fast(
                         total_error,
-                        std::intrinsics::fsub_fast(predicted[i], training_data[row][1][i]).abs(),
+                        std::intrinsics::fsub_fast(*item, training_data[row][1][i]).abs(),
                     );
                 }
+                i += 1;
             }
         }
         unsafe {
@@ -120,7 +151,9 @@ impl ML {
         }
     }
     pub fn optimise_current(&mut self, training_data: &Vec<Vec<Vec<f32>>>) {
-        let mut previous_score: f32 = self.evaluate(&training_data);
+        let mut temp_data: PredictionTempData =
+            PredictionTempData::new(self.largest_layer_capacity);
+        let mut previous_score: f32 = self.evaluate(&training_data, &mut temp_data);
         loop {
             let mut best_change_location: usize = 0;
             let mut best_change: f32 = 0.0;
@@ -178,7 +211,7 @@ impl ML {
                     for change in options.iter() {
                         let old: f32 = self.nn[location];
                         self.nn[location] += change;
-                        let current_score: f32 = self.evaluate(&training_data);
+                        let current_score: f32 = self.evaluate(&training_data, &mut temp_data);
                         self.nn[location] = old;
                         if { current_score <= last_current_score } {
                             last_current_score = current_score;
@@ -202,12 +235,15 @@ impl ML {
         }
     }
     pub fn train(&mut self, training_data: &Vec<Vec<Vec<f32>>>, rounds: u32) {
+        let mut temp_data: PredictionTempData =
+            PredictionTempData::new(self.largest_layer_capacity);
         let mut best: Vec<f32> = self.nn.clone();
-        let mut best_score: f32 = self.evaluate(&training_data);
+        let mut best_score: f32 = self.evaluate(&training_data, &mut temp_data);
+        let mut total: f32 = 0.0;
         for round in 0..rounds {
             self.randomise();
             self.optimise_current(&training_data);
-            let score: f32 = self.evaluate(&training_data);
+            let score: f32 = self.evaluate(&training_data, &mut temp_data);
             if { score < best_score } {
                 best_score = score;
                 best = self.nn.clone();
