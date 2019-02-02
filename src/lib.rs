@@ -190,6 +190,7 @@ impl ML {
             let mut best_change_location: usize = 0;
             let mut best_change: f32 = 0.0;
             let mut new_score: f32 = previous_score;
+            let rng_offset = self.rng.gen_range(-1.0 / 16384.0, 1.0 / 16384.0);
             for location in 0..self.nn.len() {
                 for options in [
                     [
@@ -242,7 +243,7 @@ impl ML {
                     let mut last_current_score: f32 = previous_score;
                     for change in options.iter() {
                         let old: f32 = self.nn[location];
-                        self.nn[location] += change;
+                        self.nn[location] += change + rng_offset;
                         let current_score: f32 = self.evaluate(&training_data, &mut temp_data);
                         self.nn[location] = old;
                         if { current_score < last_current_score } {
