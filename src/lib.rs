@@ -65,10 +65,11 @@ impl ML {
         assert!(nodes_in_layer >= 1);
         hidden_layers -= 1; //to account for double counting
         let mut sizes: Vec<[usize; 2]> = vec![[input_size, nodes_in_layer]];
-        for _ in 0..hidden_layers {
-            sizes.push([nodes_in_layer + 1, nodes_in_layer]);
+        sizes.push([nodes_in_layer + 1, nodes_in_layer]);
+        for _ in 1..hidden_layers {
+            sizes.push([nodes_in_layer, nodes_in_layer]);
         }
-        sizes.push([nodes_in_layer + 1, output_size]);
+        sizes.push([nodes_in_layer, output_size]);
         let largest_layer_capacity: usize = if { nodes_in_layer + 1 > output_size } {
             nodes_in_layer + 1
         } else {
@@ -137,6 +138,7 @@ impl ML {
         let mut sizes_iter = self.sizes.iter();
         let sizes = sizes_iter.next().expect("");
         self.apply_layer(&input, &mut temp_data.previous, sizes[0], sizes[1], 0);
+        temp_data.previous[self.nodes_in_layer] = 1.0;
         let mut offset: usize = sizes[0] * sizes[1];
         for sizes in sizes_iter {
             self.apply_layer(
