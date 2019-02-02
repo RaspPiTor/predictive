@@ -1,6 +1,31 @@
-#![feature(core_intrinsics)]
+#![feature(core_intrinsics, test)]
 extern crate rand;
+extern crate test;
 use rand::{thread_rng, Rng};
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test::Bencher;
+
+    #[test]
+    fn it_works() {
+
+    }
+
+    #[bench]
+    fn bench_predict(b: &mut Bencher) {
+        let mut new_ml = ML::new(4, 4, 5, 5);
+        for i in 0..new_ml.nn.len() {
+            new_ml.nn[i] = 1.0;
+        }
+        let mut temp_data = PredictionTempData::new(new_ml.largest_layer_capacity);
+        let input = test::black_box(vec![1.0;4]);
+        b.iter(|| new_ml.predict(&input, &mut temp_data));
+
+    }
+}
 
 struct PredictionTempData {
     previous: Vec<f32>,
