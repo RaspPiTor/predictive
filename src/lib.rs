@@ -111,7 +111,7 @@ impl ML {
     ) {
         assert!(input.len() >= size1);
         assert!(output.len() >= size2);
-        assert!(self.nn.len() >= offset + (size2 - 1) * size1 + (size1 - 1));
+        assert!(self.nn.len() >= offset + size2 * size1);
         for i in 0..size2 {
             let mut total: f32 = 0.0;
             let current_offset: usize = offset + i * size1;
