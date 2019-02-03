@@ -18,9 +18,8 @@ mod tests {
             new_ml.nn[i] = 1.0;
         }
         let mut temp_data = PredictionTempData::new(new_ml.largest_layer_capacity);
-        let input = test::black_box(vec![1.0;4]);
+        let input = test::black_box(vec![1.0; 4]);
         b.iter(|| new_ml.predict(&input, &mut temp_data));
-
     }
 }
 
