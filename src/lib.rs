@@ -82,8 +82,13 @@ impl ML {
             nn: vec![
                 0.0;
                 input_size * nodes_in_layer
-                    + hidden_layers * (nodes_in_layer + 1) * nodes_in_layer
-                    + (nodes_in_layer + 1) * output_size
+                    + (nodes_in_layer + 1) * nodes_in_layer
+                    + if { hidden_layers >= 1 } {
+                        (hidden_layers - 1) * nodes_in_layer * nodes_in_layer
+                    } else {
+                        0
+                    }
+                    + nodes_in_layer * output_size
             ],
             sizes: sizes,
             rng: thread_rng(),
