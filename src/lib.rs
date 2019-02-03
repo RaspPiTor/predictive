@@ -3,16 +3,13 @@ extern crate rand;
 extern crate test;
 use rand::{thread_rng, Rng};
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use test::Bencher;
 
     #[test]
-    fn it_works() {
-
-    }
+    fn it_works() {}
 
     #[bench]
     fn bench_predict(b: &mut Bencher) {
